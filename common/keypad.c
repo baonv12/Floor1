@@ -163,11 +163,12 @@ void keypad_delete()
 void checkPasswordKeypad(char* keyBuffer, char* defaultPassword, int lock_pin){
     if(!(strcmp(keyBuffer,defaultPassword ))){
         //open
-        gpio_set_level(lock_pin, 1);
+        gpio_set_level(lock_pin, 0);
 
         lcd_clear();
         lcd_put_cur(0, 4);
         lcd_send_string("Welcome!");
+        lcd_put_cur(1, 3);
 
         //close after 3s
         // vTaskDelay(3000 / portTICK_PERIOD_MS);
@@ -178,6 +179,7 @@ void checkPasswordKeypad(char* keyBuffer, char* defaultPassword, int lock_pin){
         lcd_clear();
         lcd_put_cur(0, 0);
         lcd_send_string("Wrong!Try again");
+        lcd_put_cur(1, 3);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         enterPassword(keyBuffer);
     }

@@ -6,6 +6,7 @@
  */
 
 #include "Fingerprint.h"
+#include "i2c-lcd.h"
 
 static const int RX_BUF_SIZE = 256;
 
@@ -645,6 +646,10 @@ as608_err_t enrollUser(uint16_t userID)
   }
 
   ESP_LOGI("Fingerprint.c", "Remove finger");
+  lcd_clear();
+  lcd_put_cur(0, 2);
+  lcd_send_string("Remove finger");
+
   vTaskDelay(2000 / portTICK_PERIOD_MS);
   p = 0;
   while (p != FINGERPRINT_NOFINGER) {
@@ -653,6 +658,12 @@ as608_err_t enrollUser(uint16_t userID)
   ESP_LOGI("Fingerprint.c", "ID: %d", userID ); 
   p = -1;
   ESP_LOGI("Fingerprint.c", "Place same finger again");
+  lcd_clear();
+  lcd_put_cur(0, 3);
+  lcd_send_string("Place same");
+  lcd_put_cur(1, 2);
+  lcd_send_string("finger again");
+
   while (p != FINGERPRINT_OK) {
     p = getImage();
     switch (p) {
@@ -718,6 +729,10 @@ as608_err_t enrollUser(uint16_t userID)
   p = storeModel(userID);
   if (p == FINGERPRINT_OK) {
     ESP_LOGI("Fingerprint.c", "Stored!");
+    lcd_clear();
+    lcd_put_cur(0, 2);
+    lcd_send_string("Stored!");
+
   } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
     ESP_LOGI("Fingerprint.c", "Communication error");
     return AS608_ERROR;

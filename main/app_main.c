@@ -35,7 +35,9 @@
 #include "i2c-lcd.h"
 #include "keypad.h"
 
-#define BROKER              "mqtt://test.mosquitto.org:1883"   
+// #define BROKER             "mqtt://192.168.3.1:1883" 
+#define BROKER              "mqtt://test.mosquitto.org:1883"  
+
 #define TOPIC_DOOR          "Prj/Door"
 #define TOPIC_FLOOR1_HUM        "Prj/Floor1/hum"
 #define TOPIC_FLOOR1_TEM        "Prj/Floor1/tem"
@@ -74,10 +76,11 @@ uint8_t enrol_id = 1;
 uint8_t enrol_time = 0;
 
 #define LOCK 23
-#define LOCK_BUTTON 15
+#define LOCK_BTN_INDOOR 15
+//#define LOCK_BTN_OUTDOOR 34
 
-#define LED 19
-#define LED_BUTTON 18
+#define LED 18
+#define LED_BUTTON 19
 
 char defaultPassword[5] = "1212";
 char keyBuffer[5] = "";
@@ -87,16 +90,20 @@ const char emptyString[] = "";
 static void my_App_Init(void)
 {
     //lock init
-    gpio_set_direction(LOCK_BUTTON, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(LOCK_BUTTON, GPIO_PULLUP_ONLY);
+    gpio_set_direction(LOCK_BTN_INDOOR, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(LOCK_BTN_INDOOR, GPIO_PULLUP_ONLY);
+
+    // gpio_set_direction(LOCK_BTN_OUTDOOR, GPIO_MODE_INPUT);
+    // gpio_set_pull_mode(LOCK_BTN_OUTDOOR, GPIO_PULLUP_ONLY);
+
     gpio_set_direction(LOCK, GPIO_MODE_INPUT_OUTPUT);
-    gpio_set_level(LOCK, 0);
+    gpio_set_level(LOCK, 1);
 
     //device init
     gpio_set_direction(LED_BUTTON, GPIO_MODE_INPUT);
     gpio_set_pull_mode(LED_BUTTON, GPIO_PULLUP_ONLY);
     gpio_set_direction(LED, GPIO_MODE_INPUT_OUTPUT);
-    gpio_set_level(LED, 0);
+    gpio_set_level(LED, 1);
 }
 
 
@@ -125,12 +132,12 @@ static void LED_button_control(void* arg)
 {
 
     for(;;) {
-        int current_button_state = gpio_get_level(LED_BUTTON);
+        //int current_button_state = gpio_get_level(LED_BUTTON);
         //printf("%d\n", current_button_state);
         if(gpio_get_level(LED_BUTTON)==0){
             while(gpio_get_level(LED_BUTTON)==0);
             int current_state = gpio_get_level(LED);
-            if(current_state == 0){
+            if(current_state == 1){
                 ESP_LOGI(TAG, "on");
             esp_mqtt_client_publish(client, TOPIC_DOOR, "11", 2, 1, 0);             
             }
@@ -144,17 +151,17 @@ static void LED_button_control(void* arg)
     }
 }
 
-static void LOCK_button_control(void* arg)
+static void LOCK_button_indoor_control(void* arg)
 {
 
     for(;;) {
-        int current_button_state = gpio_get_level(LOCK_BUTTON);
+        //int current_button_state = gpio_get_level(LOCK_BTN_INDOOR);
         //printf("butt: %d\n", current_button_state);
-        if(gpio_get_level(LOCK_BUTTON)==0){
-            while(gpio_get_level(LOCK_BUTTON)==0);
+        if(gpio_get_level(LOCK_BTN_INDOOR)==0){
+            while(gpio_get_level(LOCK_BTN_INDOOR)==0);
             int current_state = gpio_get_level(LOCK);
-            printf("%d\n", current_state);
-            if(current_state == 0){
+            //printf("%d\n", current_state);
+            if(current_state == 1){
                 ESP_LOGI(TAG, "on");
             esp_mqtt_client_publish(client, TOPIC_DOOR, "21", 2, 1, 0);             
             }
@@ -168,6 +175,26 @@ static void LOCK_button_control(void* arg)
     }
 }
 
+// static void LOCK_button_outdoor_control(void* arg)
+// {
+
+//     for(;;) {
+//         //int current_button_state = gpio_get_level(LOCK_BTN_OUTDOOR);
+//         //printf("butt: %d\n", current_button_state);
+//         if(gpio_get_level(LOCK_BTN_OUTDOOR)==0){
+//             while(gpio_get_level(LOCK_BTN_OUTDOOR)==0);
+//             // int current_state = gpio_get_level(LOCK);
+//             // //printf("%d\n", current_state);
+//             // if(current_state == 1){
+//             //     ESP_LOGI(TAG, "off");
+//             esp_mqtt_client_publish(client, TOPIC_DOOR, "20", 2, 1, 0);
+//             enterPassword(keyBuffer);             
+//             // }
+//         }
+//         vTaskDelay(10);
+//     }
+// }
+
 static void KeypadPassword(void* arg)
 {
 
@@ -176,13 +203,21 @@ static void KeypadPassword(void* arg)
         char keypressed = keypad_getkey();
         if(keypressed == '#'){
             checkPasswordKeypad(keyBuffer, defaultPassword, LOCK);
-            if(gpio_get_level(LOCK) == 1){
+            //if password was correct and the door opened, send 0
+            if(gpio_get_level(LOCK) == 0){
                 esp_mqtt_client_publish(client, TOPIC_DOOROPENCOUNTER, "0", 1, 1, 0);
             }
         }
 
         if(keypressed == '*'){
+            //clear the input password
             enterPassword(keyBuffer);
+        }
+
+        if(keypressed == 'A'){
+            //close the door when out of the house
+            esp_mqtt_client_publish(client, TOPIC_DOOR, "20", 2, 1, 0);
+            enterPassword(keyBuffer); 
         }
 
         if(keypressed == '0'||keypressed == '1'||keypressed == '2'||keypressed == '3'||
@@ -206,15 +241,15 @@ static void KeypadPassword(void* arg)
 }
 
 
-static void checkFinger(void* arg)
-{
-    for(;;)
-    {
-      search_id = searchUser(&fp);
-      ESP_LOGI("main", "ID = %d", search_id);
-      vTaskDelay(2000 / portTICK_PERIOD_MS);
-    }
-}
+// static void checkFinger(void* arg)
+// {
+//     for(;;)
+//     {
+//       search_id = searchUser(&fp);
+//       ESP_LOGI("main", "ID = %d", search_id);
+//       vTaskDelay(2000 / portTICK_PERIOD_MS);
+//     }
+// }
 
 static void fingerprint(void* arg)
 {
@@ -244,7 +279,7 @@ static void fingerprint(void* arg)
                 search_id = searchUser(&fp);
                 ESP_LOGI("main", "ID = %d", search_id);
                 if(search_id != 255){
-                    gpio_set_level(LOCK, 1);
+                    gpio_set_level(LOCK, 0);
                     sprintf(buffer_id, "%d", search_id);
                     esp_mqtt_client_publish(client, TOPIC_DOOROPENCOUNTER, buffer_id, strlen(buffer_id), 1, 0);
                     // sprintf(found_id, "%d", search_id);
@@ -316,6 +351,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         else if(strncmp(event->topic,"Prj/Account", event->topic_len)==0 && strncmp(event->data,"nrq", event->data_len)==0){
             ESP_LOGI(TAG, "Not enrol time");
             enrol_time = 0;
+            //Return Password mode
+            lcd_clear();
+            lcd_put_cur(0, 1);
+            lcd_send_string("Enter password: ");
+            lcd_put_cur(1, 3);
             //gpio_set_level(LED, 0);
         }
         else if(strncmp(event->topic,"Prj/Password", event->topic_len)==0){
@@ -326,24 +366,31 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             }
             //esp_mqtt_client_publish(client, TOPIC_PASSWORD, "1", 1, 1, 0);
             //gpio_set_level(LED, 0);
-        }
+        }       
         else if(strncmp(event->topic,"Prj/Door", event->topic_len)==0){
-            if(strncmp(event->data,"21", event->data_len)==0){
+            if(event->data_len != 0){
+                if(strncmp(event->data,"21", event->data_len)==0){
                 ESP_LOGI(TAG, "OPEN DOOR");
-                gpio_set_level(LOCK, 1);
+                gpio_set_level(LOCK, 0);
+            }
+            if(strncmp(event->data,defaultPassword, event->data_len)==0){
+                ESP_LOGI(TAG, "OPEN DOOR");
+                gpio_set_level(LOCK, 0);
+                esp_mqtt_client_publish(client, TOPIC_DOOROPENCOUNTER, "0", 1, 1, 0);
             }
             if(strncmp(event->data,"20", event->data_len)==0){
                 ESP_LOGI(TAG, "CLOSE DOOR");
-                gpio_set_level(LOCK, 0);
+                gpio_set_level(LOCK, 1);
             }
             if(strncmp(event->data,"11", event->data_len)==0){
                 ESP_LOGI(TAG, "LED ON");
-                gpio_set_level(LED, 1);
+                gpio_set_level(LED, 0);
             }
             if(strncmp(event->data,"10", event->data_len)==0){
                 ESP_LOGI(TAG, "LED OFF");
-                gpio_set_level(LED, 0);
+                gpio_set_level(LED, 1);
             }
+            }         
         }
         else if(strncmp(event->topic,"Prj/FirstInit", event->topic_len)==0){   
             printf("aaa%d\n", event->data_len );
@@ -380,6 +427,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                     printf("bb%d\n", last_id );
                     enrol_id = last_id + 1;
                 }else if(*(event->data) == '0'){
+                    emptyDatabase();// clear finger print data
                     uint8_t last_id = 0;
                     printf("bb%d\n", last_id );
                     enrol_id = last_id + 1;
@@ -475,7 +523,8 @@ void app_main(void)
 //   xTaskCreate(checkFinger, "find id with fingerprint", 2048, NULL, configMAX_PRIORITIES-1, task_search_fp);
   xTaskCreate(KeypadPassword, "unLOCK using keypad", 2048, NULL, configMAX_PRIORITIES-1, NULL);
   xTaskCreate(fingerprint, "enroll fingerprint", 2048, NULL, configMAX_PRIORITIES-1, NULL);
-  xTaskCreate(LOCK_button_control, "push LOCK cmd", 2048, NULL, configMAX_PRIORITIES-1, NULL);
+  xTaskCreate(LOCK_button_indoor_control, "push LOCK cmd", 2048, NULL, configMAX_PRIORITIES-1, NULL);
+  //xTaskCreate(LOCK_button_outdoor_control, "push LOCK cmd", 2048, NULL, configMAX_PRIORITIES-1, NULL);
   xTaskCreate(LED_button_control, "push led cmd", 2048, NULL, configMAX_PRIORITIES-1, NULL);
 
 }
