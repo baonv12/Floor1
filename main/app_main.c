@@ -35,8 +35,8 @@
 #include "i2c-lcd.h"
 #include "keypad.h"
 
-//#define BROKER             "mqtt://192.168.3.1:1883" 
- #define BROKER              "mqtt://test.mosquitto.org:1883"  
+#define BROKER             "mqtt://192.168.3.1:1883" 
+//#define BROKER              "mqtt://test.mosquitto.org:1883"  
 
 #define TOPIC_DOOR          "Prj/Door"
 #define TOPIC_FLOOR1_HUM        "Prj/Floor1/hum"
@@ -200,6 +200,7 @@ static void KeypadPassword(void* arg)
 
     for(;;)
     {
+        ESP_LOGI(TAG, "PASSWORD");
         char keypressed = keypad_getkey();
         if(keypressed == '#'){
             checkPasswordKeypad(keyBuffer, defaultPassword, LOCK);
@@ -208,6 +209,7 @@ static void KeypadPassword(void* arg)
             //if password was correct and the door opened, send 0
             if(gpio_get_level(LOCK) == 0){
                 esp_mqtt_client_publish(client, TOPIC_DOOROPENCOUNTER, "0", 1, 1, 0);
+                esp_mqtt_client_publish(client, TOPIC_DOOR, "21", 1, 1, 0);
             }
         }
 
@@ -234,7 +236,7 @@ static void KeypadPassword(void* arg)
         keypressed == '4'||keypressed == '5'||keypressed == '6'||keypressed == '7'||
         keypressed == '8'||keypressed == '9'){ 
             int keyBufferLength = strlen(keyBuffer);
-            if(keyBufferLength < 5){
+            if(keyBufferLength < 4){
                 if(keypressed == '0') strcat(keyBuffer, "0");
                 if(keypressed == '1') strcat(keyBuffer, "1");
                 if(keypressed == '2') strcat(keyBuffer, "2");
@@ -247,8 +249,8 @@ static void KeypadPassword(void* arg)
                 if(keypressed == '9') strcat(keyBuffer, "9");
                 //lcd_send_string(keypressed);
                 lcd_send_data(keypressed);
-                for(int i = 0; i < strlen(keyBuffer)) {
-                    ESP_LOGI(TAG, "%c", keyBuffer[i]);
+                for(int i = 0; i < strlen(keyBuffer); i++) {
+                    ESP_LOGI(TAG, "%c, length = %d", keyBuffer[i], strlen(keyBuffer));
                 }
             }
             
@@ -281,6 +283,10 @@ static void fingerprint(void* arg)
                 // vTaskSuspend(task_keypad_password);
             //}
             //ESP_LOGI("mainii", "flag = %d", enrol_time);
+            lcd_clear();
+            lcd_put_cur(0, 1);
+            lcd_send_string("Touch here");
+            lcd_put_cur(1, 3);
             ESP_LOGI("main", "ID = %d", enrol_id);
             if(enrollUser(enrol_id) != AS608_ERROR)
             {
@@ -379,6 +385,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             if(strncmp(event->data,"1", event->data_len) != 0){
                 strncpy(defaultPassword, event->data, event->data_len);
                 ESP_LOGI(TAG, "Password has changed!");
+                ESP_LOGI(TAG, "Password : %s, length = %d", defaultPassword, event->data_len);
                 esp_mqtt_client_publish(client, TOPIC_PASSWORD, "1", 1, 1, 0);
             }
             //esp_mqtt_client_publish(client, TOPIC_PASSWORD, "1", 1, 1, 0);

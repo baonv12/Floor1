@@ -169,7 +169,7 @@ void checkPasswordKeypad(char* keyBuffer, char* defaultPassword, int lock_pin){
         lcd_put_cur(0, 4);
         lcd_send_string("Welcome!");
         lcd_put_cur(1, 3);
-
+        
         //close after 3s
         // vTaskDelay(3000 / portTICK_PERIOD_MS);
         // gpio_set_level(lock_pin, 0);

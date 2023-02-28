@@ -27,7 +27,7 @@
 
 #include <driver/gpio.h>
 
-#define KEYPAD_DEBOUNCING 100   ///< time in ms
+#define KEYPAD_DEBOUNCING 200   ///< time in ms
 #define KEYPAD_STACKSIZE  5
 
 /**
