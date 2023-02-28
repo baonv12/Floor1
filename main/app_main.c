@@ -247,6 +247,9 @@ static void KeypadPassword(void* arg)
                 if(keypressed == '9') strcat(keyBuffer, "9");
                 //lcd_send_string(keypressed);
                 lcd_send_data(keypressed);
+                for(int i = 0; i < strlen(keyBuffer)) {
+                    ESP_LOGI(TAG, "%c", keyBuffer[i]);
+                }
             }
             
         }

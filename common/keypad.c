@@ -161,7 +161,7 @@ void keypad_delete()
 }
 
 void checkPasswordKeypad(char* keyBuffer, char* defaultPassword, int lock_pin){
-    if(!(strcmp(keyBuffer,defaultPassword ))){
+    if(!(strncmp(keyBuffer, defaultPassword, 4))){
         //open
         gpio_set_level(lock_pin, 0);
 
