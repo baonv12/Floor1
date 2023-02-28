@@ -24,7 +24,9 @@
     "xstring": "c",
     "xutility": "c",
     "string": "c",
-    "string_view": "c"
+    "string_view": "c",
+    "*.inc": "c",
+    "*.tcc": "cpp"
   },
   "idf.adapterTargetName": "esp32",
   "idf.flashType": "UART",

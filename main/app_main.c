@@ -35,8 +35,8 @@
 #include "i2c-lcd.h"
 #include "keypad.h"
 
-// #define BROKER             "mqtt://192.168.3.1:1883" 
-#define BROKER              "mqtt://test.mosquitto.org:1883"  
+//#define BROKER             "mqtt://192.168.3.1:1883" 
+ #define BROKER              "mqtt://test.mosquitto.org:1883"  
 
 #define TOPIC_DOOR          "Prj/Door"
 #define TOPIC_FLOOR1_HUM        "Prj/Floor1/hum"
@@ -203,12 +203,22 @@ static void KeypadPassword(void* arg)
         char keypressed = keypad_getkey();
         if(keypressed == '#'){
             checkPasswordKeypad(keyBuffer, defaultPassword, LOCK);
+            const char empty_string[] = "";
+            strcpy(keyBuffer, empty_string);
             //if password was correct and the door opened, send 0
             if(gpio_get_level(LOCK) == 0){
                 esp_mqtt_client_publish(client, TOPIC_DOOROPENCOUNTER, "0", 1, 1, 0);
             }
         }
 
+        if(keypressed == 'C'){
+            lcd_init();
+            lcd_clear();
+            lcd_put_cur(0, 1);
+            lcd_send_string("Enter password: ");
+            lcd_put_cur(1, 3);
+        }
+        
         if(keypressed == '*'){
             //clear the input password
             enterPassword(keyBuffer);
@@ -222,19 +232,23 @@ static void KeypadPassword(void* arg)
 
         if(keypressed == '0'||keypressed == '1'||keypressed == '2'||keypressed == '3'||
         keypressed == '4'||keypressed == '5'||keypressed == '6'||keypressed == '7'||
-        keypressed == '8'||keypressed == '9'){
-            if(keypressed == '0') strcat(keyBuffer, "0");
-            if(keypressed == '1') strcat(keyBuffer, "1");
-            if(keypressed == '2') strcat(keyBuffer, "2");
-            if(keypressed == '3') strcat(keyBuffer, "3");
-            if(keypressed == '4') strcat(keyBuffer, "4");
-            if(keypressed == '5') strcat(keyBuffer, "5");
-            if(keypressed == '6') strcat(keyBuffer, "6");
-            if(keypressed == '7') strcat(keyBuffer, "7");
-            if(keypressed == '8') strcat(keyBuffer, "8");
-            if(keypressed == '9') strcat(keyBuffer, "9");
-            //lcd_send_string(keypressed);
-            lcd_send_data(keypressed);
+        keypressed == '8'||keypressed == '9'){ 
+            int keyBufferLength = strlen(keyBuffer);
+            if(keyBufferLength < 5){
+                if(keypressed == '0') strcat(keyBuffer, "0");
+                if(keypressed == '1') strcat(keyBuffer, "1");
+                if(keypressed == '2') strcat(keyBuffer, "2");
+                if(keypressed == '3') strcat(keyBuffer, "3");
+                if(keypressed == '4') strcat(keyBuffer, "4");
+                if(keypressed == '5') strcat(keyBuffer, "5");
+                if(keypressed == '6') strcat(keyBuffer, "6");
+                if(keypressed == '7') strcat(keyBuffer, "7");
+                if(keypressed == '8') strcat(keyBuffer, "8");
+                if(keypressed == '9') strcat(keyBuffer, "9");
+                //lcd_send_string(keypressed);
+                lcd_send_data(keypressed);
+            }
+            
         }
             vTaskDelay(100 / portTICK_PERIOD_MS);
     }

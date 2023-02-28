@@ -192,4 +192,5 @@ void enterPassword(char* keyBuffer){
     lcd_put_cur(0, 1);
     lcd_send_string("Enter password: ");
     lcd_put_cur(1, 3);
+    return;
 }
