@@ -200,17 +200,22 @@ static void KeypadPassword(void* arg)
 
     for(;;)
     {
-        ESP_LOGI(TAG, "PASSWORD");
         char keypressed = keypad_getkey();
+        ESP_LOGI("input charater :", "%c", keypressed);
         if(keypressed == '#'){
+            ESP_LOGI("keyBuffer Length = ", "%d", strlen(keyBuffer));
             checkPasswordKeypad(keyBuffer, defaultPassword, LOCK);
             const char empty_string[] = "";
             strcpy(keyBuffer, empty_string);
+            keyBuffer[0] = '\0';
+            ESP_LOGI("keyBuffer Length After = ", "%d", strlen(keyBuffer));
             //if password was correct and the door opened, send 0
             if(gpio_get_level(LOCK) == 0){
                 esp_mqtt_client_publish(client, TOPIC_DOOROPENCOUNTER, "0", 1, 1, 0);
-                esp_mqtt_client_publish(client, TOPIC_DOOR, "21", 1, 1, 0);
+                vTaskDelay(20);
+                esp_mqtt_client_publish(client, TOPIC_DOOR, "21", 2, 1, 0);      
             }
+            continue;
         }
 
         if(keypressed == 'C'){
@@ -230,6 +235,7 @@ static void KeypadPassword(void* arg)
             //close the door when out of the house
             esp_mqtt_client_publish(client, TOPIC_DOOR, "20", 2, 1, 0);
             enterPassword(keyBuffer); 
+            ESP_LOGI("keyBuffer Length = ", "%d", strlen(keyBuffer));
         }
 
         if(keypressed == '0'||keypressed == '1'||keypressed == '2'||keypressed == '3'||
@@ -248,7 +254,8 @@ static void KeypadPassword(void* arg)
                 if(keypressed == '8') strcat(keyBuffer, "8");
                 if(keypressed == '9') strcat(keyBuffer, "9");
                 //lcd_send_string(keypressed);
-                lcd_send_data(keypressed);
+                lcd_put_cur(1, 3);
+                lcd_send_string(keyBuffer);
                 for(int i = 0; i < strlen(keyBuffer); i++) {
                     ESP_LOGI(TAG, "%c, length = %d", keyBuffer[i], strlen(keyBuffer));
                 }
